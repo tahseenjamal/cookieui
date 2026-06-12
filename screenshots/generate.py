@@ -59,6 +59,9 @@ def load(name):
     return mod
 
 
+BLOCKS = {'\u2588': 1.0, '\u2593': 0.75, '\u2592': 0.5, '\u2591': 0.25}
+
+
 def grid_image(screen):
     img = Image.new('RGB', (screen.width * CW, screen.height * CH))
     drw = ImageDraw.Draw(img)
@@ -66,8 +69,18 @@ def grid_image(screen):
         for x, c in enumerate(row):
             drw.rectangle([x * CW, y * CH, (x + 1) * CW - 1, (y + 1) * CH - 1],
                           fill=c.bg or (0, 0, 0))
-            if c.char != ' ':
-                drw.text((x * CW + CW // 2, y * CH + CH // 2), c.char,
+            ch = c.char
+            if ch in BLOCKS:
+                # block/shade elements fill the whole cell, edge to edge —
+                # exactly as real terminals special-case them (no glyph gaps)
+                k = BLOCKS[ch]
+                fg = c.fg or (255, 255, 255)
+                bg = c.bg or (0, 0, 0)
+                mix = tuple(int(f * k + b * (1 - k)) for f, b in zip(fg, bg))
+                drw.rectangle([x * CW, y * CH, (x + 1) * CW - 1, (y + 1) * CH - 1],
+                              fill=mix)
+            elif ch != ' ':
+                drw.text((x * CW + CW // 2, y * CH + CH // 2), ch,
                          font=BOLD if c.bold else FONT,
                          fill=c.fg or (255, 255, 255), anchor='mm')
     return img
