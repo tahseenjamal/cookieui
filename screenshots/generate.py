@@ -60,6 +60,8 @@ def load(name):
 
 
 BLOCKS = {'\u2588': 1.0, '\u2593': 0.75, '\u2592': 0.5, '\u2591': 0.25}
+LOWER = {chr(0x2581 + i): (i + 1) / 8 for i in range(7)}    # \u2581\u2582\u2583\u2584\u2585\u2586\u2587
+HALVES = {'\u258c': 'left', '\u2590': 'right', '\u2580': 'top'}
 
 
 def grid_image(screen):
@@ -79,6 +81,18 @@ def grid_image(screen):
                 mix = tuple(int(f * k + b * (1 - k)) for f, b in zip(fg, bg))
                 drw.rectangle([x * CW, y * CH, (x + 1) * CW - 1, (y + 1) * CH - 1],
                               fill=mix)
+            elif ch in LOWER:
+                # lower-eighth blocks (pulse spinner): solid fg from the bottom up
+                top = y * CH + round(CH * (1 - LOWER[ch]))
+                drw.rectangle([x * CW, top, (x + 1) * CW - 1, (y + 1) * CH - 1],
+                              fill=c.fg or (255, 255, 255))
+            elif ch in HALVES:
+                # half blocks (FLAT scrollbar thumb): solid fg in that half-cell
+                box = {'left':  [x * CW, y * CH, x * CW + CW // 2 - 1, (y + 1) * CH - 1],
+                       'right': [x * CW + CW // 2, y * CH, (x + 1) * CW - 1, (y + 1) * CH - 1],
+                       'top':   [x * CW, y * CH, (x + 1) * CW - 1, y * CH + CH // 2 - 1],
+                       }[HALVES[ch]]
+                drw.rectangle(box, fill=c.fg or (255, 255, 255))
             elif ch != ' ':
                 drw.text((x * CW + CW // 2, y * CH + CH // 2), ch,
                          font=BOLD if c.bold else FONT,
