@@ -131,10 +131,13 @@ def terminal_frame(shot, title):
     BAR, RAD, PAD = 58, 18, 96
     W, H = shot.width, shot.height + BAR
     canvas = Image.new('RGBA', (W + 2 * PAD, H + 2 * PAD), (0, 0, 0, 0))
-    sh = Image.new('RGBA', canvas.size, (0, 0, 0, 0))
-    ImageDraw.Draw(sh).rounded_rectangle(
-        [PAD + 4, PAD + 22, PAD + W + 4, PAD + H + 22], RAD, fill=(30, 24, 16, 115))
-    canvas.alpha_composite(sh.filter(ImageFilter.GaussianBlur(24)))
+    # three shadow layers, like macOS (and the cover's CSS box-shadow):
+    # a tight contact shadow plus two progressively larger, softer ones
+    for dy, blur, alpha in ((6, 5, 70), (18, 12, 60), (34, 26, 55)):
+        sh = Image.new('RGBA', canvas.size, (0, 0, 0, 0))
+        ImageDraw.Draw(sh).rounded_rectangle(
+            [PAD, PAD + dy, PAD + W, PAD + H + dy], RAD, fill=(30, 24, 16, alpha))
+        canvas.alpha_composite(sh.filter(ImageFilter.GaussianBlur(blur)))
     term = Image.new('RGBA', (W, H))
     td = ImageDraw.Draw(term)
     td.rectangle([0, 0, W, BAR], fill=(58, 46, 34, 255))
