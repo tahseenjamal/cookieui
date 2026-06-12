@@ -195,3 +195,14 @@ def test_render_standalone_screen_roundtrip():
     snap = snapshot(s)
     emu.feed(flush(s))
     assert_grids_equal(emu, snap)
+
+
+def test_zero_terminal_size_is_ignored():
+    # A pty reporting 0x0 must not produce a zero-cell (invisible) app.
+    from cookieui.core.terminal import Terminal
+    import os
+    t = Terminal.__new__(Terminal)
+    t._fd = -1                       # headless: keep defaults
+    t.width, t.height = 80, 24
+    t._update_size()
+    assert (t.width, t.height) == (80, 24)

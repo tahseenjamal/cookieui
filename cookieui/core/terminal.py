@@ -29,8 +29,12 @@ class Terminal:
             return
         try:
             sz = os.get_terminal_size(self._fd)
-            self.width = sz.columns
-            self.height = sz.lines
+            # Some environments (fresh ptys, odd launchers) report 0×0; a
+            # zero-cell screen renders nothing and looks like a freeze —
+            # keep the previous (or default 80×24) size instead.
+            if sz.columns > 0 and sz.lines > 0:
+                self.width = sz.columns
+                self.height = sz.lines
         except OSError:
             pass
 
