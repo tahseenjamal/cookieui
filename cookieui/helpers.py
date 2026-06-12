@@ -430,9 +430,9 @@ def buttons_below(view, win, specs, spacing: int = 3, gap: int = 1,
     layout_buttons(buttons, bx, by, spacing=spacing, width=win.width - 4, align=align)
     view.add(*buttons)
     if getattr(win, '_auto_height', False):
-        # Height isn't known yet — remember the row so finalize can re-anchor it.
+        # Final geometry isn't known yet — remember the row so finalize can re-anchor it.
         win._below_rows = getattr(win, '_below_rows', [])
-        win._below_rows.append((buttons, gap))
+        win._below_rows.append((buttons, gap, spacing, align))
     return tuple(buttons)
 
 
@@ -708,6 +708,13 @@ class VerticalLayout:
         self._current_y += 3 + self.spacing  # Button height (3) + spacing
         for b in buttons:
             self._add(b)
+        if isinstance(self.target, Window):
+            # A content-fit window may widen at finalize to fit this row —
+            # remember how to re-justify it inside the final interior.
+            self.target._aligned_rows = getattr(self.target, '_aligned_rows', [])
+            self.target._aligned_rows.append(
+                (buttons, spacing, align,
+                 self.x - self.target.x, self.target.width - self.width))
         return tuple(buttons)
 
     def checkboxes(self, specs, on_change=None) -> tuple:
@@ -815,17 +822,36 @@ class TuiApp:
         if self.AUTO_STATUS and self.STATUS_HINT and not getattr(view, '_has_status', False):
             self.status_bar(view, self.STATUS_HINT)
 
-    @staticmethod
-    def _finalize_auto_windows(view):
-        """Fit every content-fit window to what was placed in it, then re-anchor any
-        buttons_below rows that were waiting on the final height."""
+    def _finalize_auto_windows(self, view):
+        """Fit every content-fit window to what was placed in it — width first (a
+        too-wide row widens the window, which is re-centered on the terminal and
+        its button rows re-justified inside the new interior), then height — then
+        re-anchor any buttons_below rows that were waiting on the final geometry."""
         for w in view._all:
-            if isinstance(w, Window) and getattr(w, '_auto_height', False):
+            if not isinstance(w, Window):
+                continue
+            if getattr(w, '_auto_width', False):
+                old_x, old_w = w.x, w.width
+                W = self.ts.width()
+                if w.fit_content_width() != old_w:
+                    w.width = min(w.width, W - 2)        # never past the terminal
+                    w.x = (W - w.width) // 2             # keep the page centered
+                    dx = w.x - old_x
+                    if dx:
+                        for k in w._kids:
+                            k.x += dx
+                    for buttons, spacing, align, off_x, off_w in getattr(w, '_aligned_rows', []):
+                        if buttons:
+                            layout_buttons(buttons, w.x + off_x, buttons[0].y,
+                                           spacing=spacing, width=w.width - off_w,
+                                           align=align)
+            if getattr(w, '_auto_height', False):
                 w.fit_content_height()
-                for buttons, gap in getattr(w, '_below_rows', []):
+                for buttons, gap, spacing, align in getattr(w, '_below_rows', []):
                     by = stack_below(w.y, w.height, gap=gap)
-                    for b in buttons:
-                        b.y = by
+                    if buttons:
+                        layout_buttons(buttons, w.x + 2, by, spacing=spacing,
+                                       width=w.width - 4, align=align)
 
     @staticmethod
     def _resolve_view(view):
@@ -1159,7 +1185,10 @@ class TuiApp:
         terminal** (`0.5` = half), ints are exact cells.
 
         **Omit `height` for content-fit windows** (forms, menus, button panels — the
-        window wraps whatever the layout places, finalized when the view is pushed);
+        window wraps whatever the layout places, finalized when the view is pushed;
+        this works in both axes: the window also **widens** when a placed row — a
+        long row of buttons, say — needs more than the requested width, staying
+        centered, so content never bleeds through the border);
         **pass `height` when the window contains a listbox/textview or other fill
         widget** (`page(0.7, 0.8)`) — "fill the window" needs a fixed window to fill.
         In a content-fit window, size scroll boxes with `rows=5` and put buttons in
@@ -1179,6 +1208,7 @@ class TuiApp:
             wy = max(1, (H - H // 2 - 4) // 2)          # anchor as if half-terminal tall
             win = Window(wx, wy, ww, H - wy - 2, title=title, icon=icon)
             win._auto_height = True                      # finalized on push_view
+            win._auto_width = True                       # widens if a row needs more
         else:
             wx, wy, ww, wh = self.centered_window(resolve_size(width, W),
                                                   resolve_size(height, H))

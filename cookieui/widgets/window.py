@@ -150,6 +150,18 @@ class Window(Widget):
         self.height = bottom - self.y + 2        # + bottom border
         return self.height
 
+    def fit_content_width(self) -> int:
+        """Widen the window so its right border clears its widest child (counting the
+        child's drop shadow) — never narrows. The width companion of fit_content_height:
+        in a content-fit window, a row wider than the requested width (a long row of
+        buttons, say) stretches the window instead of bleeding through its border."""
+        right = self.x + self.width - 2          # rightmost interior column
+        for k in self._kids:
+            kr = k.x + k.width - 1 + (1 if getattr(k, 'shadow', False) else 0)
+            right = max(right, kr)
+        self.width = max(self.width, right - self.x + 2)   # + right border column
+        return self.width
+
     # ── Child management ─────────────────────────────────────────────
 
     def add(self, *widgets) -> 'Window':

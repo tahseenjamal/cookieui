@@ -64,6 +64,33 @@ LOWER = {chr(0x2581 + i): (i + 1) / 8 for i in range(7)}    # \u2581\u2582\u2583
 HALVES = {'\u258c': 'left', '\u2590': 'right', '\u2580': 'top'}
 
 
+def _load_fallback():
+    for p in ('/System/Library/Fonts/Menlo.ttc',
+              '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'):
+        try:
+            return ImageFont.truetype(p, SIZE)
+        except OSError:
+            continue
+    return None
+
+
+FALLBACK = _load_fallback()
+_TOFU = {True: bytes(BOLD.getmask('\ue000')), False: bytes(FONT.getmask('\ue000'))}
+_FCACHE = {}
+
+
+def glyph_font(ch, bold=False):
+    """JetBrains Mono first; Menlo/DejaVu for glyphs it lacks (spinner arcs,
+    braille) \u2014 like a real terminal's font fallback, instead of a tofu box."""
+    f = BOLD if bold else FONT
+    if FALLBACK is None:
+        return f
+    key = (ch, bold)
+    if key not in _FCACHE:
+        _FCACHE[key] = FALLBACK if bytes(f.getmask(ch)) == _TOFU[bold] else f
+    return _FCACHE[key]
+
+
 def grid_image(screen):
     img = Image.new('RGB', (screen.width * CW, screen.height * CH))
     drw = ImageDraw.Draw(img)
@@ -95,7 +122,7 @@ def grid_image(screen):
                 drw.rectangle(box, fill=c.fg or (255, 255, 255))
             elif ch != ' ':
                 drw.text((x * CW + CW // 2, y * CH + CH // 2), ch,
-                         font=BOLD if c.bold else FONT,
+                         font=glyph_font(ch, c.bold),
                          fill=c.fg or (255, 255, 255), anchor='mm')
     return img
 

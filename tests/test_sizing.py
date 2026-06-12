@@ -89,6 +89,44 @@ def test_rows_is_semantic_content_rows():
     assert app.tbl.height == 8 + Table.CHROME        # rows + border/header chrome
 
 
+# ── Content-fit width: a too-wide row widens the window, never overflows it ──
+
+class WideRowApp(TuiApp):
+    """The Fig-9.1 bug shape: a button row wider than the requested window."""
+    def build_view(self):
+        page = self.page(0.2, title='Lights')        # ~20 cells: can't hold the row
+        page.label('The lights are OFF.')
+        page.gap()
+        self.row = page.buttons([('On', None), ('Off', None), ('Quit', None)])
+        self.win = page.win
+        return page
+
+
+def test_content_fit_widens_for_wide_button_row():
+    app = make(WideRowApp)
+    win, row = app.win, app.row
+    assert win.width > resolve_size(0.2, W)          # the window grew
+    interior_right = win.x + win.width - 2
+    for b in row:
+        assert b.x > win.x                           # inside the left border
+        assert b.x + b.width - 1 + 1 <= interior_right   # inside the right (+ shadow)
+
+
+def test_widened_window_stays_centered_and_recentres_the_row():
+    app = make(WideRowApp)
+    win, row = app.win, app.row
+    assert win.x == (W - win.width) // 2             # window re-centered on screen
+    lay_x, lay_w = win.x + 2, win.width - 4          # the pad_x=1 layout strip
+    left  = row[0].x - lay_x
+    right = (lay_x + lay_w) - (row[-1].x + row[-1].width)
+    assert abs(left - right) <= 1                    # row centered in the new interior
+
+
+def test_content_fit_width_is_expand_only():
+    app = make(FitApp)                               # content fits comfortably
+    assert app.win.width == resolve_size(0.5, W)     # requested width untouched
+
+
 # ── Teaching errors: wrong sizing raises a message that says what to do ──────
 
 def test_fill_in_content_fit_window_raises():
