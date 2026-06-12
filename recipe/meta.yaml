@@ -1,0 +1,62 @@
+# conda-forge recipe for cookieui.
+#
+# This file is the submission payload for conda-forge/staged-recipes — once the
+# PR there is merged, `micromamba install -c conda-forge cookieui` (and conda/
+# mamba equivalents) work everywhere. Prerequisite: the version below must
+# already be on PyPI (the sha256 is of the PyPI sdist).
+#
+# Submission steps (owner, one time):
+#   1. twine upload dist/*                       # PyPI release first
+#   2. sha256: curl -sL $SDIST_URL | shasum -a 256
+#   3. Fork conda-forge/staged-recipes, copy this file to recipes/cookieui/meta.yaml,
+#      fill in the sha256, open the PR. After merge, conda-forge creates the
+#      cookieui-feedstock repo; future releases are one-line version bumps there.
+
+{% set name = "cookieui" %}
+{% set version = "1.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/cookieui-{{ version }}.tar.gz
+  sha256: b8e1e17967378de77654590c05e4c6b49d053d57600365bcbd99e5f4d656b820
+
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python {{ python_min }}
+    - setuptools >=61
+    - pip
+  run:
+    - python >={{ python_min }}
+
+test:
+  imports:
+    - cookieui
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/tahseenjamal/cookieui
+  summary: Zero-dependency Python terminal-UI library with the classic Newt look
+  description: |
+    CookieUI is a pure-stdlib terminal UI library descending from Newt/whiptail:
+    truecolor windows with drop shadows, a widget toolbox, one-line dialogs and
+    background tasks, differential rendering, and a themeable design system.
+    POSIX terminals only (termios/tty).
+  license: Unlicense
+  license_file: LICENSE
+  doc_url: https://github.com/tahseenjamal/cookieui
+  dev_url: https://github.com/tahseenjamal/cookieui
+
+extra:
+  recipe-maintainers:
+    - tahseenjamal

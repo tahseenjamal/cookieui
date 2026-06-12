@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cookieui"
+version = "1.0.0"
+description = "Zero-dependency Python terminal-UI library with the classic Newt look — truecolor windows, drop shadows, and a no-boilerplate app API"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{ name = "Tahseen Jamal", email = "tahseen.jamal@gmail.com" }]
+# The Unlicense: a public-domain dedication with an actual license FILE —
+# required by conda-forge and expected by PyPI; same intent as before.
+license = { file = "LICENSE" }
+keywords = ["tui", "terminal", "ui", "newt", "whiptail", "ansi", "truecolor"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: The Unlicense (Unlicense)",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Terminals",
+    "Topic :: Software Development :: User Interfaces",
+]
+
+# Zero runtime dependencies — stdlib only (termios, tty, select, signal).
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/tahseenjamal/cookieui"
+Repository = "https://github.com/tahseenjamal/cookieui"
+Issues = "https://github.com/tahseenjamal/cookieui/issues"
+
+[project.optional-dependencies]
+dev = ["pytest"]          # the library stays zero-dep; tests are dev-only
+
+[tool.setuptools.packages.find]
+include = ["cookieui*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

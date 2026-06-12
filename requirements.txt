@@ -1,0 +1,6 @@
+# CookieUI has ZERO dependencies!
+# Only uses Python standard library (termios, tty, select, signal)
+# This file is empty because no external packages are required.
+#
+# Supported Python versions: 3.8+
+# Required standard library modules are built-in on all platforms.
