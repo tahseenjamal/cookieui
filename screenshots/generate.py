@@ -50,7 +50,7 @@ BOLD = ImageFont.truetype(find_font('JetBrainsMono-Bold.ttf'), SIZE)
 TITLEFONT = ImageFont.truetype(find_font('JetBrainsMono-Regular.ttf'), 24)
 CW = round(FONT.getlength('M'))
 CH = round(SIZE * 1.30)
-TERM_W, TERM_H = 92, 30
+TERM_W, TERM_H = 92, 34
 
 
 def load(name):

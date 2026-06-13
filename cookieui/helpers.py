@@ -151,36 +151,40 @@ def calculate_centered_window(
     term_w: int,
     term_h: int,
     desired_w: int,
-    desired_h: int
+    desired_h: int,
+    reserve_bottom: int = 0,
 ) -> tuple:
     """Calculate position and constrained size for a centered window.
 
     Returns: (x, y, constrained_w, constrained_h)
     - Window is constrained to fit within terminal bounds
     - Horizontally centered on screen
-    - Vertically positioned with slight offset from center
+    - Centered within the band above any reserved bottom rows
+
+    `reserve_bottom` keeps the window *and its drop shadow* clear of a bottom
+    status bar: with `reserve_bottom=3`, the lowest shadow row leaves the 3-row
+    status bar (plus a gap) untouched, so a tall window never collides with it.
 
     Args:
         term_w: Terminal width
         term_h: Terminal height
         desired_w: Target window width
         desired_h: Target window height
+        reserve_bottom: Rows to keep clear at the bottom (e.g. a status bar)
 
     Returns:
         Tuple of (x, y, width, height) for window positioning
     """
-    # Constrain width: use desired width or (term_w - 2), whichever is smaller
     win_w = min(desired_w, term_w - 2)
 
-    # Constrain height: use desired height or (term_h - 4), whichever is smaller
-    # (account for some padding from top/bottom)
-    win_h = min(desired_h, term_h - 4)
+    # Cap the height so the window plus its drop shadow and a gap row sit above
+    # the reserved band: lowest shadow row is term_h - reserve_bottom - 2.
+    win_h = min(desired_h, max(3, term_h - reserve_bottom - 3))
 
-    # Center horizontally
     wx = (term_w - win_w) // 2
 
-    # Position vertically with slight offset from center
-    wy = max(1, (term_h - win_h - 4) // 2)
+    # Center within the band above the reserved bottom rows (window + shadow).
+    wy = max(1, (term_h - reserve_bottom - win_h - 1) // 2)
 
     return (wx, wy, win_w, win_h)
 
@@ -1212,7 +1216,11 @@ class TuiApp:
         Returns: (x, y, width, height)
         """
         W, H = self.ts.width(), self.ts.height()
-        return calculate_centered_window(W, H, desired_w, desired_h)
+        # reserve the 3-row status bar when one will be shown, so a tall
+        # fixed-height window (and its shadow) never lands on it
+        reserve = 3 if (self.AUTO_STATUS and self.STATUS_HINT) else 0
+        return calculate_centered_window(W, H, desired_w, desired_h,
+                                         reserve_bottom=reserve)
 
     def status_bar(self, view, text: str, align: str = 'center') -> Window:
         """Create a status bar at the bottom (text centered; align='left'/'right')."""

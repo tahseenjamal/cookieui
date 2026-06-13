@@ -76,7 +76,7 @@ class Commander(TuiApp):
     def build_view(self):
         view = View()
         H, W = self.ts.height(), self.ts.width()
-        lwin, rwin = self.columns(view, 2, height=H - 10, y=1)   # leave room below
+        lwin, rwin = self.columns(view, 2, height=H - 12, y=1)   # leave room below
         self.left = lwin.fill_with(FileBrowser, self.ldir,
                                    on_select=self.view_file,
                                    on_dir_change=lambda p: self._remember(0, p))
