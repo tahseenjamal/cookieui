@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Cookie Commander — a two-pane file manager (the book's capstone, Part IX).
+"""Cookie Commander — a two-pane file manager (the book's capstone).
 
 OVERVIEW:
-  Two FileBrowser panes side by side, a shared progress bar and status line
+  Two FileBrowser panes side by side, a framed transfer bar and a status bar
   beneath them, and single-key actions: copy or move the selection to the
   other pane, delete with confirmation, make a directory, view a file.
 
@@ -14,17 +14,16 @@ KEYBOARD CONTROLS:
   - Esc / q: quit (in the viewer they mean back)
 
 DESIGN PATTERNS DEMONSTRATED:
-  - Engines and adapters (Ch 28/29): copy_path/move_path/delete_path are pure
-    module-level functions — chunked, byte-accurate progress, atomic per-file
-    publish (.part + os.replace), BaseException sweep, re-raise the truth
+  - Engines and adapters: copy_path/move_path/delete_path are pure module-level
+    functions — thin shutil wrappers, kept deliberately boring so the example is
+    about the UI, not file I/O (the domain logic should never be the clever part)
   - run_task with auto-detection: the view's sole ProgressBar is adopted, the
     engines' on_progress is injected, outcomes land on the status label, the
     single-flight guard makes a second 'c' during a copy a safe no-op
-  - Composite reuse (Ch 39): FileBrowser panes via fill_with — zero geometry
-  - The view stack (Ch 26): the viewer is a pushed builder; Esc pops back
-  - columns + shadow-aware stacking (Ch 5/22): no coordinates anywhere
+  - Composite reuse: FileBrowser panes via fill_with — zero geometry
+  - The view stack: the viewer is a pushed builder; Esc pops back
+  - columns + shadow-aware stacking: no coordinates anywhere
 """
-import os
 import shutil
 import pathlib
 
@@ -33,65 +32,25 @@ from cookieui import (TuiApp, View, Window, FileBrowser, TextView, ProgressBar, 
 from cookieui.core.event import KeyType
 
 
-# ── Domain logic — pure, no UI, no threads ───────────────────────────────────
+# ── Domain logic — pure, no UI, no threads. Deliberately boring: shutil does
+#    the real work, so the example stays about the UI, not file I/O. ───────────
 
-def _files_under(src: pathlib.Path, dst: pathlib.Path):
-    """(source file, destination file) pairs for a file or a whole tree."""
-    if src.is_file():
-        return [(src, dst)]
-    return [(p, dst / p.relative_to(src))
-            for p in sorted(src.rglob('*')) if p.is_file()]
-
-
-def copy_path(src: pathlib.Path, dst: pathlib.Path, on_progress) -> int:
-    """Copy a file or directory tree, reporting byte-accurate progress.
-
-    Each file is published atomically (.part then os.replace); any failure
-    sweeps the stray .part and re-raises — what an error looks like is the
-    adapter's decision. Returns the bytes copied.
-    """
-    pairs = _files_under(src, dst)
-    total = sum(s.stat().st_size for s, _ in pairs) or 1
-    done = 0
-    for s, d in pairs:
-        d.parent.mkdir(parents=True, exist_ok=True)
-        part = d.with_name(d.name + '.part')
-        try:
-            with open(s, 'rb') as fin, open(part, 'wb') as fout:
-                while chunk := fin.read(256 * 1024):
-                    fout.write(chunk)
-                    done += len(chunk)
-                    on_progress(done / total)
-            os.replace(part, d)
-        except BaseException:
-            part.unlink(missing_ok=True)
-            raise
-    if src.is_dir() and not pairs:                 # an empty directory still copies
-        dst.mkdir(parents=True, exist_ok=True)
+def copy_path(src: pathlib.Path, dst: pathlib.Path, on_progress):
+    """Copy a file, or a whole directory tree."""
+    (shutil.copytree if src.is_dir() else shutil.copy2)(src, dst)
     on_progress(1.0)
-    return done
 
 
-def move_path(src: pathlib.Path, dst: pathlib.Path, on_progress) -> int:
-    """Move: instant rename on the same filesystem, copy + delete across."""
-    try:
-        os.replace(src, dst)
-        on_progress(1.0)
-        return 0
-    except OSError:                                # crossing filesystems
-        n = copy_path(src, dst, on_progress)
-        delete_path(src, on_progress)
-        return n
-
-
-def delete_path(path: pathlib.Path, on_progress) -> str:
-    """Delete a file or tree. Returns the name, for the outcome message."""
-    if path.is_dir():
-        shutil.rmtree(path)
-    else:
-        path.unlink()
+def move_path(src: pathlib.Path, dst: pathlib.Path, on_progress):
+    """Move a file or tree — a rename in place, or copy + delete across volumes."""
+    shutil.move(str(src), str(dst))
     on_progress(1.0)
-    return path.name
+
+
+def delete_path(path: pathlib.Path, on_progress):
+    """Delete a file, or a whole tree."""
+    shutil.rmtree(path) if path.is_dir() else path.unlink()
+    on_progress(1.0)
 
 
 def read_text(path: pathlib.Path, limit: int = 512 * 1024) -> str:
@@ -180,9 +139,9 @@ class Commander(TuiApp):
             self.status.text = f'✗ {target.name} already exists in the other pane.'
             return
 
-        def done(n):
+        def done(_):
             self.refresh()
-            return f'✓ {verb} {sel.name} ({n:,} bytes)' if n else f'✓ {verb} {sel.name}'
+            return f'✓ {verb} {sel.name}'
 
         self.run_task(engine, sel, target, status=self.status,
                       running=f'{verb}ing {sel.name} …',
@@ -201,9 +160,9 @@ class Commander(TuiApp):
             return
 
         def really():
-            def done(name):
+            def done(_):
                 self.refresh()
-                return f'✓ Deleted {name}'
+                return f'✓ Deleted {sel.name}'
             self.run_task(delete_path, sel, status=self.status,
                           running=f'Deleting {sel.name} …',
                           on_done=done, on_error=lambda e: f'✗ {e}')

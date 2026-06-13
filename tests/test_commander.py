@@ -72,15 +72,17 @@ def test_commander_engines_tree_and_move(tmp_path):
     (A / 'top.txt').write_text('top')
 
     fractions = []
-    n = mod.copy_path(A, tmp_path / 'dst', fractions.append)
-    assert (tmp_path / 'dst' / 'deep' / 'x.txt').read_text() == 'tree'
+    mod.copy_path(A, tmp_path / 'dst', fractions.append)         # shutil.copytree
+    assert (tmp_path / 'dst' / 'deep' / 'x.txt').read_text() == 'tree'   # whole tree
     assert (tmp_path / 'dst' / 'top.txt').read_text() == 'top'
-    assert n == 7 and fractions[-1] == 1.0          # 'tree' + 'top' bytes... names lie;
-    # byte count: len('tree') + len('top') == 7 — byte-accurate, file-spanning
+    assert fractions[-1] == 1.0                                  # engine drives the bar to 1.0
 
     mod.move_path(tmp_path / 'dst' / 'top.txt', tmp_path / 'moved.txt', fractions.append)
     assert (tmp_path / 'moved.txt').read_text() == 'top'
     assert not (tmp_path / 'dst' / 'top.txt').exists()
+
+    mod.delete_path(tmp_path / 'dst', fractions.append)          # shutil.rmtree
+    assert not (tmp_path / 'dst').exists()
 
 
 def test_filebrowser_selected_path(tmp_path):

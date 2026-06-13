@@ -125,14 +125,16 @@ def grid_image(screen):
                        }[HALVES[ch]]
                 drw.rectangle(box, fill=c.fg or (255, 255, 255))
             elif ch in TICKS:
-                # title brackets: draw the glyph, then erase above the border
-                # line so the vertical tick drops INTO the window instead of
-                # poking out the top edge (JBM draws these full-cell-height)
-                cym = y * CH + CH // 2
-                drw.text((x * CW + CW // 2, cym), ch, font=glyph_font(ch, c.bold),
-                         fill=c.fg or (255, 255, 255), anchor='mm')
-                drw.rectangle([x * CW, y * CH, (x + 1) * CW - 1, cym - 2],
-                              fill=c.bg or (0, 0, 0))
+                # title brackets are full-cell-height in JBM and would bleed past
+                # the cell's top edge (into the background above the window). Draw
+                # on a per-cell tile so PIL clips the glyph to the cell — the whole
+                # tick stays, the bleed beyond the window border is gone.
+                bg = c.bg or (0, 0, 0)
+                tile = Image.new('RGB', (CW, CH), bg)
+                ImageDraw.Draw(tile).text((CW // 2, CH // 2), ch,
+                                          font=glyph_font(ch, c.bold),
+                                          fill=c.fg or (255, 255, 255), anchor='mm')
+                img.paste(tile, (x * CW, y * CH))
             elif ch != ' ':
                 drw.text((x * CW + CW // 2, y * CH + CH // 2), ch,
                          font=glyph_font(ch, c.bold),
