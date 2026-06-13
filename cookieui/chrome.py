@@ -43,7 +43,8 @@ class Chrome:
 
         if title:
             self._title(screen, theme, x, y, width, f' {title} ',
-                        fg=t.title_fg, bg=bg, brackets=(t.title_l, t.title_r))
+                        fg=t.title_fg, bg=bg, brackets=(t.title_l, t.title_r),
+                        border_fg=bfg)
         return bg
 
     def scrollbar(self, screen, theme, x_col, y_top, inner_h, total, scroll, *,
@@ -90,7 +91,8 @@ class Chrome:
         if title:
             icon_part = f'{icon} ' if icon else ''
             self._title(screen, theme, x, y, width, f' {icon_part}{title} ',
-                        fg=t.title_fg, bg=bg, brackets=(t.title_l, t.title_r))
+                        fg=t.title_fg, bg=bg, brackets=(t.title_l, t.title_r),
+                        border_fg=bfg)
         return bg
 
     def dialog_frame(self, screen, theme, x, y, width, height, *,
@@ -116,7 +118,7 @@ class Chrome:
             ic    = f'{icon} ' if icon else ''
             label = f' {ic}{title} '[:max(1, width - 2)]
             self._title(screen, theme, x, y, width, label, fg=t.title_fg, bg=bg,
-                        brackets=(t.etitle_l, t.etitle_r))
+                        brackets=(t.etitle_l, t.etitle_r), border_fg=bfg)
         return bg
 
     # ── controls ───────────────────────────────────────────────────────────
@@ -169,16 +171,22 @@ class Chrome:
 
     # ── helpers ────────────────────────────────────────────────────────────
 
-    def _title(self, screen, theme, x, y, width, label, *, fg, bg, brackets=None):
+    def _title(self, screen, theme, x, y, width, label, *, fg, bg,
+               brackets=None, border_fg=None):
         """Place a title on a top edge, flanked by the theme's title brackets (the
-        classic Newt ┤ … ├ cut into the border), honoring the title_align token."""
-        if brackets and (brackets[0] or brackets[1]):
-            label = f'{brackets[0]}{label}{brackets[1]}'
-        if theme.title_align == 'left':
-            tx = x + 2
-        else:
-            tx = x + max(1, (width - len(label)) // 2)
-        screen.write(tx, y, label, fg=fg, bg=bg, bold=True)
+        classic Newt ┤ … ├ cut into the border), honoring the title_align token.
+        The brackets are part of the border, so they take `border_fg`; only the
+        title text takes `fg`."""
+        bl, br = brackets or ('', '')
+        total  = len(bl) + len(label) + len(br)
+        tx = x + 2 if theme.title_align == 'left' else x + max(1, (width - total) // 2)
+        bfg = border_fg if border_fg is not None else fg
+        cx = tx
+        if bl:
+            screen.put(cx, y, bl, fg=bfg, bg=bg); cx += 1
+        screen.write(cx, y, label, fg=fg, bg=bg, bold=True); cx += len(label)
+        if br:
+            screen.put(cx, y, br, fg=bfg, bg=bg)
 
 
 class FlatChrome(Chrome):
