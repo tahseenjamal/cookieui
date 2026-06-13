@@ -232,7 +232,7 @@ MOCHA = Theme(
     surface        = _SURF0,
     surface_raised = _SURF1,
 
-    border         = _SURF2,
+    border         = _SUB0,     # window outline lifted toward white (was _SURF2)
     border_focused = _C_BLUE,
     border_dim     = _OVL0,
 
@@ -268,8 +268,8 @@ MOCHA = Theme(
     help_fg        = _OVL1,
 
     # 3-line button: stays inside the Catppuccin palette — blue surface, dark
-    # text, lavender frame. (The Newt coral belongs to NEWT alone.)
-    button_border  = _LAVEN,    # border color (lavender frame)
+    # text, and a dark frame (the inverse of the now-lighter window outline).
+    button_border  = _BASE,     # border color (dark frame on the blue face)
     button_bg      = _C_BLUE,   # interior background (blue)
     button_fg      = _BASE,     # text color (dark on blue)
 
