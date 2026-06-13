@@ -47,9 +47,14 @@ def test_page_fraction_width():
     app = make(FixedApp)
     win = find(app._app.current_view, Window)
     assert win.width == round(W * 0.6)
-    assert win.height == round(H * 0.8)
-    # centered
+    # 0.8 of the height, but capped so the window + its drop shadow clear the
+    # status bar with two blank rows (the reserved band; H - 3 status - 2 gap
+    # - 2 for shadow+border margin)
+    assert win.height == min(round(H * 0.8), H - 7)
+    # centered horizontally
     assert win.x == (W - win.width) // 2
+    # the shadow row leaves >= 2 blank rows above the 3-row status bar
+    assert (H - 3) - 1 - (win.y + win.height) >= 2
 
 
 def test_content_fit_wraps_children():

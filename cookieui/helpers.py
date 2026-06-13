@@ -162,8 +162,10 @@ def calculate_centered_window(
     - Centered within the band above any reserved bottom rows
 
     `reserve_bottom` keeps the window *and its drop shadow* clear of a bottom
-    status bar: with `reserve_bottom=3`, the lowest shadow row leaves the 3-row
-    status bar (plus a gap) untouched, so a tall window never collides with it.
+    status bar: with `reserve_bottom=3`, the window's height is capped so its
+    shadow leaves two blank rows above the 3-row status bar — a tall window
+    (even one asking for 0.85 of the screen) shrinks to clear it, rather than
+    abutting it with a one-row sliver.
 
     Args:
         term_w: Terminal width
@@ -177,14 +179,17 @@ def calculate_centered_window(
     """
     win_w = min(desired_w, term_w - 2)
 
-    # Cap the height so the window plus its drop shadow and a gap row sit above
-    # the reserved band: lowest shadow row is term_h - reserve_bottom - 2.
-    win_h = min(desired_h, max(3, term_h - reserve_bottom - 3))
+    # Keep two blank rows between the window's drop shadow and the reserved
+    # band so the gap reads as a clear separation, not a sliver.
+    gap = 2 if reserve_bottom else 0
+
+    # Cap the height so window + shadow + gap sit above the reserved band.
+    win_h = min(desired_h, max(3, term_h - reserve_bottom - gap - 2))
 
     wx = (term_w - win_w) // 2
 
-    # Center within the band above the reserved bottom rows (window + shadow).
-    wy = max(1, (term_h - reserve_bottom - win_h - 1) // 2)
+    # Center the window (and its shadow) within the band above the reserved rows.
+    wy = max(1, (term_h - reserve_bottom - gap - win_h) // 2)
 
     return (wx, wy, win_w, win_h)
 
