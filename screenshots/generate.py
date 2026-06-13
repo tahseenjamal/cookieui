@@ -151,12 +151,6 @@ def terminal_frame(shot, title):
     mask = Image.new('L', (W, H), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, W, H], RAD, fill=255)
     canvas.paste(term, (PAD, PAD), mask)
-    # macOS separates dark windows from their own shadow with a light
-    # hairline around the edge — without it, dark themes read flatter
-    # than light ones even though the shadow is identical
-    ImageDraw.Draw(canvas).rounded_rectangle(
-        [PAD + 1, PAD + 1, PAD + W - 2, PAD + H - 2], RAD - 1,
-        outline=(255, 255, 255, 48), width=2)
     return canvas
 
 
