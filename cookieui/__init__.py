@@ -14,7 +14,7 @@ from .helpers import (TerminalSizeProvider, calculate_centered_window,
                       footer_buttons, buttons_below, bind_quit, bind_key)
 from .contrib import FileBrowser
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 __all__ = [
     'App', 'View',
