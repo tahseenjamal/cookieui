@@ -1,3 +1,9 @@
+# Internal dev/authoring docs — kept locally, never published to GitHub
+CLAUDE.md
+PLAN.md
+NOTES.md
+PROMPT.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
