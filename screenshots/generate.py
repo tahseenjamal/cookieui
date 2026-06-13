@@ -51,6 +51,10 @@ TITLEFONT = ImageFont.truetype(find_font('JetBrainsMono-Regular.ttf'), 24)
 CW = round(FONT.getlength('M'))
 CH = round(SIZE * 1.30)
 TERM_W, TERM_H = 92, 34
+# apps that ask for 0.85 of the height (processes, themedemo) need a taller
+# terminal so the window renders at full size *and* clears the status bar with
+# a real gap — 0.85·H + shadow + gap + status fits only once H >= 44.
+TALL_H = 46
 
 
 def load(name):
@@ -220,7 +224,7 @@ def shot_filebrowsing():
     return app
 
 def shot_processes():
-    app = make(load('processes').Processes, w=TERM_W, h=TERM_H)
+    app = make(load('processes').Processes, w=TERM_W, h=TALL_H)
     press(app, Key(KeyType.TAB), Key(KeyType.DOWN), Key(KeyType.DOWN))
     return app
 
@@ -259,7 +263,7 @@ def shot_dialogs():
     return app
 
 def shot_themes():
-    app = make(load('themedemo').ThemeGallery, w=TERM_W, h=TERM_H)
+    app = make(load('themedemo').ThemeGallery, w=TERM_W, h=TALL_H)
     press(app, Key(KeyType.DOWN))                    # Mocha selected, live
     return app
 
